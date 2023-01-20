@@ -9,7 +9,7 @@ use embedded_hal::blocking::i2c;
 use embedded_hal::digital::v2::OutputPin;
 
 pub mod bus;
-use bus::{DataBus, EightBitBus, FourBitBus, I2CBus};
+use bus::{DataBus, EightBitBus, FourBitBus, I2CBus, I2CBusMcp2300};
 
 pub mod error;
 use error::Result;
@@ -192,6 +192,34 @@ impl<I2C: i2c::Write> HD44780<I2CBus<I2C>> {
 	) -> Result<HD44780<I2CBus<I2C>>> {
 		let mut hd = HD44780 {
 			bus: I2CBus::new(i2c_bus, address),
+			entry_mode: EntryMode::default(),
+			display_mode: DisplayMode::default(),
+			display_size: DisplaySize::default(),
+		};
+
+		hd.init_4bit(delay)?;
+
+		Ok(hd)
+	}
+}
+
+impl<I2C: i2c::Write> HD44780<I2CBusMcp2300<I2C>> {
+	/// Create an instance of a `HD44780` from an i2c write peripheral,
+	/// the `HD44780` I2C address and a struct implementing the delay trait.
+	/// - The delay instance is used to sleep between commands to
+	/// ensure the `HD44780` has enough time to process commands.
+	/// - The i2c peripheral is used to send data to the `HD44780` and to set
+	/// its register select and enable pins.
+	///
+	/// This mode operates on an I2C bus, using an I2C to parallel port expander
+	///
+	pub fn new_i2c_mcp2300<D: DelayUs<u16> + DelayMs<u8>>(
+		i2c_bus: I2C,
+		address: u8,
+		delay: &mut D,
+	) -> Result<HD44780<I2CBusMcp2300<I2C>>> {
+		let mut hd = HD44780 {
+			bus: I2CBusMcp2300::new(i2c_bus, address),
 			entry_mode: EntryMode::default(),
 			display_mode: DisplayMode::default(),
 			display_size: DisplaySize::default(),
